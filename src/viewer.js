@@ -105,14 +105,35 @@ let viewSettings = {
 guiViewSettings.add(viewSettings, "toggleFillerCells");
 guiViewSettings.add(viewSettings, "toggleTopCellGeometry");
 
+// install vite's Hot Module Replacement (HMR) hook that listens for changes to the GLTF file
+// and reloads the model when the file changes
+// NOTE: this only works in vite's development server mode
+if (import.meta.hot) {
+    import.meta.hot.accept();
+    import.meta.hot.dispose(() => {
+        clearGLTFScene();
+    });
+    import.meta.hot.on('my-gltf-change', () => {
+        console.log('GLTF file changed, reloading model...');
+        loadGLTFScene(GLTF_URL);  // Re-load the model
+    });
+}
 
 const gltf_loader = new GLTFLoader();
-gltf_loader.load(
-    GLTF_URL,
-    // called when the resource is loaded
-    function (gltf) {
+var gltf_scene = null;
 
-        scene.add(gltf.scene);
+loadGLTFScene(GLTF_URL);
+
+function clearGLTFScene() {
+    if (gltf_scene) scene.remove(gltf_scene);  // Remove scene from the rendering
+    gltf_scene = null;
+}
+
+function loadGLTFScene(url) {
+    gltf_loader.load(url, function (gltf) { // called when the resource is loaded
+        clearGLTFScene();
+        gltf_scene = gltf.scene;
+        scene.add(gltf_scene);
 
         gltf.scene.rotation.x = -Math.PI / 2;
         gltf.animations; // Array<THREE.AnimationClip>
@@ -213,7 +234,7 @@ gltf_loader.load(
     function (error) {
         console.log('An error happened');
     }
-);
+)}
 
 
 const highlightMaterial = new THREE.MeshBasicMaterial({ color: 0x50f050 });
